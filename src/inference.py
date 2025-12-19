@@ -6,8 +6,8 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer
 
-from model import SentimentModel
-from dataset import InferenceDataset  # dataset.py에 이미 추가해둔 추론용 Dataset
+from model import SentimentBERT
+from dataset import InferenceDataset
 
 def inference_epoch(model, loader, device):
     model.eval()
@@ -32,23 +32,19 @@ if __name__ == "__main__":
     MAX_LEN = 64
     BATCH_SIZE = 32
 
-    # tokenizer (학습 때와 동일)
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-    # 데이터 로드 (라벨 없음)
     df = pd.read_csv(DATA_PATH)
-    df["text"] = df.iloc[:, 4].astype(str)  # Content 컬럼
+    df["text"] = df.iloc[:, 4].astype(str)
     texts = df["text"].dropna().tolist()
 
     dataset = InferenceDataset(texts, tokenizer, MAX_LEN)
     loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    # 모델 로드
-    model = SentimentModel()
+    model = SentimentBERT()
     model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
     model.to(DEVICE)
 
-    # 추론
     preds = inference_epoch(model, loader, DEVICE)
 
     pos_ratio = (pd.Series(preds) == 1).mean()
